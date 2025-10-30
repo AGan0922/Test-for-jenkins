@@ -1,11 +1,23 @@
 {
-  "name": "api-tests",
+  "name": "test-for-jenkins",
   "version": "1.0.0",
+  "description": "API Automation Testing with Jenkins",
   "scripts": {
-    "test:api": "newman run postman/collection.json -e postman/environment.json -r html,cli,junit --reporter-html-export reports/htmlReport.html --reporter-junit-export reports/junitReport.xml",
-    "test:api:ci": "newman run postman/collection.json -e postman/environment.json -r junit,cli --reporter-junit-export test-results/newman/results.xml"
+    "test": "newman run postman/collection.json -e postman/environment.json",
+    "test:smoke": "newman run postman/collection.json -e postman/environment.json --folder \"Smoke Tests\"",
+    "test:regression": "newman run postman/collection.json -e postman/environment.json --folder \"Regression Tests\"",
+    "test:report": "newman run postman/collection.json -e postman/environment.json -r htmlextra,junit,json --reporter-htmlextra-export reports/newman-report.html --reporter-junit-export reports/newman-report.xml --reporter-json-export reports/newman-report.json"
   },
   "devDependencies": {
-    "newman": "^6.0.0"
-  }
+    "newman": "^5.3.2",
+    "newman-reporter-htmlextra": "^1.22.1",
+    "newman-reporter-json": "^1.0.1",
+    "newman-reporter-junit": "^1.0.1"
+  },
+  "keywords": [
+    "postman",
+    "newman",
+    "api-testing",
+    "jenkins"
+  ]
 }
