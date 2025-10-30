@@ -1,0 +1,11 @@
+{
+  "name": "api-tests",
+  "version": "1.0.0",
+  "scripts": {
+    "test:api": "newman run postman/collection.json -e postman/environment.json -r html,cli,junit --reporter-html-export reports/htmlReport.html --reporter-junit-export reports/junitReport.xml",
+    "test:api:ci": "newman run postman/collection.json -e postman/environment.json -r junit,cli --reporter-junit-export test-results/newman/results.xml"
+  },
+  "devDependencies": {
+    "newman": "^6.0.0"
+  }
+}
