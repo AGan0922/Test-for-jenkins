@@ -1,0 +1,121 @@
+{
+	"info": {
+		"_postman_id": "86e69d88-ec94-4595-b6a2-033245936d37",
+		"name": "Chat",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49563016",
+		"_collection_link": "https://agan0922-3221434.postman.co/workspace/51aeda5a-1f09-4918-85d3-f315ede24b22/collection/49563016-86e69d88-ec94-4595-b6a2-033245936d37?action=share&source=collection_link&creator=49563016"
+	},
+	"item": [
+		{
+			"name": "对话输入内容",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"//解析响应\r",
+							"const jsonData = pm.response.json();\r",
+							"\r",
+							"//提取变量并设置为环境变量\r",
+							"pm.environment.set(\"conversationId\", jsonData.data.conversationId);\r",
+							"\r",
+							"// //或设置为全局变量\r",
+							"// pm.globals.set(\"conversationId\",jsonData.data.conversationId);\r",
+							"//等待时长\r",
+							"setTimeout(function(){\r",
+							"    console.log(\"等待30秒后执行\");\r",
+							"},30000)"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "satoken",
+						"value": "34454dec-c0bc-45b9-b6af-e2b9938e0cf4",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"content\": \"{\\\"userInput\\\":\\\"{{content}}\\\"}\",\r\n    \"conversationId\": null,\r\n    \"openid\": \"1980912224268533760\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://testdeepgift.ztlink.com/c-access/zt-gifts-app/chat/chat",
+					"protocol": "https",
+					"host": [
+						"testdeepgift",
+						"ztlink",
+						"com"
+					],
+					"path": [
+						"c-access",
+						"zt-gifts-app",
+						"chat",
+						"chat"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "输出推荐商品",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "satoken",
+						"value": "34454dec-c0bc-45b9-b6af-e2b9938e0cf4",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://testdeepgift.ztlink.com/c-access/zt-gifts-app/chat/get-goods/{{conversationId}}/6527?openid=1980912224268533760",
+					"protocol": "https",
+					"host": [
+						"testdeepgift",
+						"ztlink",
+						"com"
+					],
+					"path": [
+						"c-access",
+						"zt-gifts-app",
+						"chat",
+						"get-goods",
+						"{{conversationId}}",
+						"6527"
+					],
+					"query": [
+						{
+							"key": "openid",
+							"value": "1980912224268533760"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
