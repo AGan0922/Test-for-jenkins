@@ -4,7 +4,7 @@
 		"name": "Chat",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "49563016",
-		"_collection_link": "https://agan0922-3221434.postman.co/workspace/51aeda5a-1f09-4918-85d3-f315ede24b22/collection/49563016-86e69d88-ec94-4595-b6a2-033245936d37?action=share&source=collection_link&creator=49563016"
+		"_collection_link": "https://agan0922-3221434.postman.co/workspace/DeepGift~51aeda5a-1f09-4918-85d3-f315ede24b22/collection/49563016-86e69d88-ec94-4595-b6a2-033245936d37?action=share&source=collection_link&creator=49563016"
 	},
 	"item": [
 		{
@@ -48,14 +48,77 @@
 				"method": "POST",
 				"header": [
 					{
+						"key": "accept",
+						"value": "*/*"
+					},
+					{
+						"key": "accept-language",
+						"value": "zh-CN,zh;q=0.9"
+					},
+					{
+						"key": "cache-control",
+						"value": "no-cache"
+					},
+					{
+						"key": "content-type",
+						"value": "application/json;charset=UTF-8"
+					},
+					{
+						"key": "cookie",
+						"value": "satoken=5215dad8-7249-4f70-a454-e7b403c95e66"
+					},
+					{
+						"key": "origin",
+						"value": "https://testdeepgift.ztlink.com"
+					},
+					{
+						"key": "pragma",
+						"value": "no-cache"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "referer",
+						"value": "https://testdeepgift.ztlink.com/"
+					},
+					{
 						"key": "satoken",
-						"value": "34454dec-c0bc-45b9-b6af-e2b9938e0cf4",
-						"type": "text"
+						"value": "5215dad8-7249-4f70-a454-e7b403c95e66"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"Windows\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-origin"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
 					}
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"content\": \"{\\\"userInput\\\":\\\"{{content}}\\\"}\",\r\n    \"conversationId\": null,\r\n    \"openid\": \"1980912224268533760\"\r\n}",
+					"raw": "{\r\n    \"content\": \"{\\\"userInput\\\":\\\"{{conten}}\\\"}\",\r\n    \"conversationId\": null,\r\n    \"openid\": \"1980912224268533760\"\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -86,13 +149,72 @@
 				"method": "GET",
 				"header": [
 					{
+						"key": "accept",
+						"value": "*/*"
+					},
+					{
+						"key": "accept-language",
+						"value": "zh-CN,zh;q=0.9"
+					},
+					{
+						"key": "cache-control",
+						"value": "no-cache"
+					},
+					{
+						"key": "content-type",
+						"value": "application/json;charset=UTF-8"
+					},
+					{
+						"key": "cookie",
+						"value": "satoken=5215dad8-7249-4f70-a454-e7b403c95e66"
+					},
+					{
+						"key": "pragma",
+						"value": "no-cache"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "referer",
+						"value": "https://testdeepgift.ztlink.com/"
+					},
+					{
 						"key": "satoken",
-						"value": "34454dec-c0bc-45b9-b6af-e2b9938e0cf4",
-						"type": "text"
+						"value": "5215dad8-7249-4f70-a454-e7b403c95e66"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Not A(Brand\";v=\"8\", \"Chromium\";v=\"132\", \"Google Chrome\";v=\"132\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"Windows\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-origin"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"
 					}
 				],
 				"url": {
-					"raw": "https://testdeepgift.ztlink.com/c-access/zt-gifts-app/chat/get-goods/{{conversationId}}/6527?openid=1980912224268533760",
+					"raw": "https://testdeepgift.ztlink.com/c-access/zt-gifts-app/chat/get-goods/{{conversationId}}/6687?openid=1980912224268533760",
 					"protocol": "https",
 					"host": [
 						"testdeepgift",
@@ -105,7 +227,7 @@
 						"chat",
 						"get-goods",
 						"{{conversationId}}",
-						"6527"
+						"6687"
 					],
 					"query": [
 						{
