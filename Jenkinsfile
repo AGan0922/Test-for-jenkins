@@ -14,9 +14,8 @@ pipeline {
         )
     }
     
-    environment {
-        PROJECT_DIR = 'Test-for-jenkins'
-        REPORT_DIR = 'reports'
+    options {
+        timeout(time: 30, unit: 'MINUTES')
     }
     
     stages {
@@ -29,31 +28,30 @@ pipeline {
                     java -version 2>&1
                     echo "Git版本:"
                     git --version
-                    echo "当前目录:"
+                    echo "当前工作目录:"
                     cd
                     echo "文件列表:"
                     dir
-                    echo "=== 检查项目结构 ==="
-                    dir %WORKSPACE%\\${PROJECT_DIR} || echo "项目目录不存在"
+                    echo "=== 检查Postman文件 ==="
+                    dir postman || echo "postman目录不存在"
                 """
             }
         }
         
-        stage('Install Node.js Manually') {
+        stage('Install Newman') {
             steps {
-                echo '手动安装Node.js和Newman...'
+                echo '安装Newman测试工具...'
                 bat """
-                    echo "检查是否已安装Node.js..."
-                    node --version && echo "Node.js已安装" || (
-                        echo "Node.js未安装，尝试使用系统Node.js或安装Newman全局..."
-                    )
+                    echo "检查Node.js和npm..."
+                    node --version || echo "Node.js未安装"
+                    npm --version || echo "npm未安装"
                     
-                    echo "安装Newman测试工具..."
+                    echo "安装Newman..."
                     npm install -g newman --registry=https://registry.npmmirror.com
                     npm install -g newman-reporter-htmlextra --registry=https://registry.npmmirror.com
                     
                     echo "验证安装:"
-                    newman --version || echo "Newman安装失败，但继续执行..."
+                    newman --version || echo "Newman安装失败"
                 """
             }
         }
@@ -61,76 +59,73 @@ pipeline {
         stage('Verify Test Files') {
             steps {
                 echo '验证测试文件...'
-                dir("${PROJECT_DIR}") {
-                    bat """
-                        echo "=== 项目文件结构 ==="
-                        dir
-                        echo "=== Postman文件 ==="
-                        dir postman
-                        echo "=== 检查关键文件 ==="
-                        if exist postman\\collection.json (
-                            echo "✅ collection.json 存在"
-                            type postman\\collection.json | head -5
-                        ) else (
-                            echo "❌ collection.json 不存在"
-                        )
-                        if exist postman\\${TEST_ENVIRONMENT} (
-                            echo "✅ ${TEST_ENVIRONMENT} 存在"
-                            type postman\\${TEST_ENVIRONMENT} | head -5
-                        ) else (
-                            echo "❌ ${TEST_ENVIRONMENT} 不存在"
-                        )
-                    """
-                }
+                bat """
+                    echo "=== 检查关键文件 ==="
+                    if exist postman\\collection.json (
+                        echo "✅ collection.json 存在"
+                        echo "文件内容前几行:"
+                        type postman\\collection.json | head -3
+                    ) else (
+                        echo "❌ collection.json 不存在"
+                        dir postman || echo "postman目录也不存在"
+                    )
+                    
+                    if exist postman\\%TEST_ENVIRONMENT% (
+                        echo "✅ %TEST_ENVIRONMENT% 存在"
+                        echo "文件内容前几行:"
+                        type postman\\%TEST_ENVIRONMENT% | head -3
+                    ) else (
+                        echo "❌ %TEST_ENVIRONMENT% 不存在"
+                    )
+                    
+                    echo "=== 当前目录所有文件 ==="
+                    dir /s /b || echo "目录列表失败"
+                """
             }
         }
         
         stage('Run API Tests') {
             steps {
                 echo '执行API测试...'
-                dir("${PROJECT_DIR}") {
-                    script {
-                        // 创建报告目录
-                        bat "if not exist ${REPORT_DIR} mkdir ${REPORT_DIR}"
-                        
-                        try {
-                            bat """
-                                echo "开始执行Postman测试..."
-                                newman run "postman/collection.json" -e "postman/${TEST_ENVIRONMENT}" --reporters cli,htmlextra --reporter-htmlextra-export "${REPORT_DIR}/newman-report.html" --suppress-exit-code
-                                echo "测试执行完成!"
-                            """
-                        } catch (Exception e) {
-                            echo "测试执行出错: ${e.getMessage()}"
-                            currentBuild.result = 'UNSTABLE'
-                        }
+                script {
+                    // 创建报告目录
+                    bat "if not exist reports mkdir reports"
+                    
+                    try {
+                        bat """
+                            echo "开始执行Postman测试..."
+                            newman run "postman\\collection.json" -e "postman\\%TEST_ENVIRONMENT%" --reporters cli,htmlextra --reporter-htmlextra-export "reports\\newman-report.html" --suppress-exit-code
+                            echo "测试执行完成!"
+                        """
+                    } catch (Exception e) {
+                        echo "测试执行出错: ${e.getMessage()}"
+                        currentBuild.result = 'UNSTABLE'
                     }
                 }
             }
         }
         
-        stage('Generate Reports') {
+        stage('Publish Reports') {
             steps {
-                echo '生成测试报告...'
-                dir("${PROJECT_DIR}") {
-                    bat """
-                        echo "检查生成的报告:"
-                        dir ${REPORT_DIR} || echo "报告目录不存在"
-                        if exist ${REPORT_DIR}\\newman-report.html (
-                            echo "✅ HTML报告生成成功"
-                        ) else (
-                            echo "❌ HTML报告未生成"
-                        )
-                    """
-                }
+                echo '发布测试报告...'
+                bat """
+                    echo "检查生成的报告:"
+                    dir reports || echo "报告目录不存在"
+                    if exist reports\\newman-report.html (
+                        echo "✅ HTML报告生成成功"
+                    ) else (
+                        echo "❌ HTML报告未生成"
+                    )
+                """
                 
                 script {
                     // 发布HTML报告
-                    if (fileExists("${PROJECT_DIR}/${REPORT_DIR}/newman-report.html")) {
+                    if (fileExists("reports/newman-report.html")) {
                         publishHTML([
                             allowMissing: false,
                             alwaysLinkToLastBuild: true,
                             keepAll: true,
-                            reportDir: "${PROJECT_DIR}/${REPORT_DIR}",
+                            reportDir: "reports",
                             reportFiles: 'newman-report.html',
                             reportName: 'API测试报告'
                         ])
@@ -147,22 +142,20 @@ pipeline {
         always {
             echo "构建完成 - 结果: ${currentBuild.currentResult}"
             bat """
-                echo "=== 最终工作空间状态 ==="
-                cd %WORKSPACE%
-                echo "工作空间根目录:"
+                echo "=== 工作空间最终状态 ==="
+                cd
                 dir
-                echo "项目目录:"
-                dir ${PROJECT_DIR}
-                echo "报告文件:"
-                dir ${PROJECT_DIR}\\${REPORT_DIR} || echo "无报告目录"
+                echo "=== 报告目录 ==="
+                dir reports || echo "无报告目录"
             """
             
-            // 简单的成功/失败消息，避免邮件发送问题
             script {
                 if (currentBuild.currentResult == 'SUCCESS') {
                     echo "🎉 自动化测试执行成功！"
+                } else if (currentBuild.currentResult == 'UNSTABLE') {
+                    echo "⚠️ 测试执行完成，但有失败的测试用例"
                 } else {
-                    echo "💡 构建完成状态: ${currentBuild.currentResult}"
+                    echo "❌ 构建失败"
                 }
             }
         }
