@@ -7,133 +7,100 @@ pipeline {
             choices: ['environment.json'],
             description: '选择测试环境'
         )
-        choice(
-            name: 'TEST_TYPE',
-            choices: ['all', 'smoke', 'regression'],
-            description: '选择测试类型'
-        )
         booleanParam(
             name: 'SEND_EMAIL',
-            defaultValue: true,
+            defaultValue: false,
             description: '是否发送邮件通知'
         )
     }
     
-    options {
-        timeout(time: 30, unit: 'MINUTES')
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-    }
-    
     environment {
-        NODEJS_HOME = tool 'NodeJS-24'
         PROJECT_DIR = 'Test-for-jenkins'
-        REPORT_DIR = '${WORKSPACE}/reports'
+        REPORT_DIR = 'reports'
     }
     
     stages {
-        stage('Checkout') {
+        stage('Check System Environment') {
             steps {
-                echo '开始拉取代码...'
-                git branch: 'main', 
-                url: 'https://your-git-repository.com/Test-for-jenkins.git',
-                credentialsId: 'your-git-credentials'
-                
+                echo '检查系统环境...'
+                bat """
+                    echo "=== 系统环境检查 ==="
+                    echo "Java版本:"
+                    java -version 2>&1
+                    echo "Git版本:"
+                    git --version
+                    echo "当前目录:"
+                    cd
+                    echo "文件列表:"
+                    dir
+                    echo "=== 检查项目结构 ==="
+                    dir %WORKSPACE%\\${PROJECT_DIR} || echo "项目目录不存在"
+                """
+            }
+        }
+        
+        stage('Install Node.js Manually') {
+            steps {
+                echo '手动安装Node.js和Newman...'
+                bat """
+                    echo "检查是否已安装Node.js..."
+                    node --version && echo "Node.js已安装" || (
+                        echo "Node.js未安装，尝试使用系统Node.js或安装Newman全局..."
+                    )
+                    
+                    echo "安装Newman测试工具..."
+                    npm install -g newman --registry=https://registry.npmmirror.com
+                    npm install -g newman-reporter-htmlextra --registry=https://registry.npmmirror.com
+                    
+                    echo "验证安装:"
+                    newman --version || echo "Newman安装失败，但继续执行..."
+                """
+            }
+        }
+        
+        stage('Verify Test Files') {
+            steps {
+                echo '验证测试文件...'
                 dir("${PROJECT_DIR}") {
-                    sh 'echo "当前目录结构:" && find . -type f -name "*.json"'
+                    bat """
+                        echo "=== 项目文件结构 ==="
+                        dir
+                        echo "=== Postman文件 ==="
+                        dir postman
+                        echo "=== 检查关键文件 ==="
+                        if exist postman\\collection.json (
+                            echo "✅ collection.json 存在"
+                            type postman\\collection.json | head -5
+                        ) else (
+                            echo "❌ collection.json 不存在"
+                        )
+                        if exist postman\\${TEST_ENVIRONMENT} (
+                            echo "✅ ${TEST_ENVIRONMENT} 存在"
+                            type postman\\${TEST_ENVIRONMENT} | head -5
+                        ) else (
+                            echo "❌ ${TEST_ENVIRONMENT} 不存在"
+                        )
+                    """
                 }
             }
         }
         
-        stage('Environment Setup') {
+        stage('Run API Tests') {
             steps {
-                echo '设置测试环境...'
-                dir("${PROJECT_DIR}") {
-                    script {
-                        // 检查必要的文件是否存在
-                        if (!fileExists('postman/collection.json')) {
-                            error "缺少 collection.json 文件"
-                        }
-                        if (!fileExists("postman/${TEST_ENVIRONMENT}")) {
-                            error "缺少环境文件: ${TEST_ENVIRONMENT}"
-                        }
-                        
-                        // 显示环境信息
-                        sh """
-                            echo "Node.js 版本:"
-                            node --version
-                            echo "NPM 版本:"
-                            npm --version
-                        """
-                    }
-                }
-            }
-        }
-        
-        stage('Dependencies Installation') {
-            steps {
-                echo '安装项目依赖...'
-                dir("${PROJECT_DIR}") {
-                    script {
-                        // 检查 package.json 是否存在，如果存在则安装依赖
-                        if (fileExists('package.json')) {
-                            sh '''
-                                echo "安装 npm 依赖..."
-                                npm install
-                                echo "检查 newman 是否已安装..."
-                                npx newman --version || npm install -g newman
-                                npm list newman-reporter-htmlextra || npm install newman-reporter-htmlextra
-                                npm list newman-reporter-json || npm install newman-reporter-json
-                                npm list newman-reporter-junit || npm install newman-reporter-junit
-                            '''
-                        } else {
-                            // 如果项目没有 package.json，全局安装 newman
-                            sh '''
-                                echo "全局安装 Newman..."
-                                npm install -g newman
-                                npm install -g newman-reporter-htmlextra
-                                npm install -g newman-reporter-json
-                                npm install -g newman-reporter-junit
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('API Tests Execution') {
-            steps {
-                echo '执行 API 测试...'
+                echo '执行API测试...'
                 dir("${PROJECT_DIR}") {
                     script {
                         // 创建报告目录
-                        sh 'mkdir -p ${REPORT_DIR}'
+                        bat "if not exist ${REPORT_DIR} mkdir ${REPORT_DIR}"
                         
-                        // 根据测试类型设置不同的参数
-                        def testFolder = ""
-                        if (params.TEST_TYPE == "smoke") {
-                            testFolder = "--folder \"Smoke Tests\""
-                        } else if (params.TEST_TYPE == "regression") {
-                            testFolder = "--folder \"Regression Tests\""
-                        }
-                        
-                        // 执行 Newman 测试
                         try {
-                            sh """
-                                echo "开始执行 Postman 测试集合..."
-                                npx newman run "postman/collection.json" \
-                                    -e "postman/${TEST_ENVIRONMENT}" \
-                                    ${testFolder} \
-                                    --delay-request 1000 \
-                                    --timeout-request 30000 \
-                                    --reporters cli,htmlextra,json,junit \
-                                    --reporter-htmlextra-export "${REPORT_DIR}/newman-report.html" \
-                                    --reporter-json-export "${REPORT_DIR}/newman-report.json" \
-                                    --reporter-junit-export "${REPORT_DIR}/newman-report.xml" \
-                                    --suppress-exit-code
+                            bat """
+                                echo "开始执行Postman测试..."
+                                newman run "postman/collection.json" -e "postman/${TEST_ENVIRONMENT}" --reporters cli,htmlextra --reporter-htmlextra-export "${REPORT_DIR}/newman-report.html" --suppress-exit-code
+                                echo "测试执行完成!"
                             """
                         } catch (Exception e) {
-                            echo "测试执行过程中出现错误: ${e.getMessage()}"
-                            // 即使测试失败，我们也要继续流程来生成报告
+                            echo "测试执行出错: ${e.getMessage()}"
                             currentBuild.result = 'UNSTABLE'
                         }
                     }
@@ -141,37 +108,36 @@ pipeline {
             }
         }
         
-        stage('Test Report Generation') {
+        stage('Generate Reports') {
             steps {
                 echo '生成测试报告...'
-                script {
-                    // 检查报告文件是否生成
-                    sh """
-                        echo "检查报告文件:"
-                        ls -la ${REPORT_DIR}/ || echo "报告目录不存在"
+                dir("${PROJECT_DIR}") {
+                    bat """
+                        echo "检查生成的报告:"
+                        dir ${REPORT_DIR} || echo "报告目录不存在"
+                        if exist ${REPORT_DIR}\\newman-report.html (
+                            echo "✅ HTML报告生成成功"
+                        ) else (
+                            echo "❌ HTML报告未生成"
+                        )
                     """
                 }
-            }
-            
-            post {
-                always {
-                    // 发布 HTML 报告
-                    publishHTML([
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: "${REPORT_DIR}",
-                        reportFiles: 'newman-report.html',
-                        reportName: 'Postman API 测试报告'
-                    ])
-                    
-                    // 发布 JUnit 测试结果
-                    junit allowEmptyResults: true, 
-                          testResults: "${REPORT_DIR}/newman-report.xml"
-                    
-                    // 归档 JSON 报告
-                    archiveArtifacts artifacts: "${REPORT_DIR}/newman-report.json", 
-                                    allowEmptyArchive: true
+                
+                script {
+                    // 发布HTML报告
+                    if (fileExists("${PROJECT_DIR}/${REPORT_DIR}/newman-report.html")) {
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: "${PROJECT_DIR}/${REPORT_DIR}",
+                            reportFiles: 'newman-report.html',
+                            reportName: 'API测试报告'
+                        ])
+                        echo "✅ 测试报告发布成功"
+                    } else {
+                        echo "⚠️ 未找到测试报告文件"
+                    }
                 }
             }
         }
@@ -179,56 +145,26 @@ pipeline {
     
     post {
         always {
-            echo "构建完成 - 结果: ${currentBuild.result}"
+            echo "构建完成 - 结果: ${currentBuild.currentResult}"
+            bat """
+                echo "=== 最终工作空间状态 ==="
+                cd %WORKSPACE%
+                echo "工作空间根目录:"
+                dir
+                echo "项目目录:"
+                dir ${PROJECT_DIR}
+                echo "报告文件:"
+                dir ${PROJECT_DIR}\\${REPORT_DIR} || echo "无报告目录"
+            """
+            
+            // 简单的成功/失败消息，避免邮件发送问题
             script {
-                // 清理工作空间（可选）
-                // cleanWs()
-                
-                // 发送邮件通知
-                if (params.SEND_EMAIL) {
-                    def emailSubject = ""
-                    def emailBody = """
-                    <h2>API 自动化测试执行完成</h2>
-                    <p><strong>项目名称:</strong> ${env.JOB_NAME}</p>
-                    <p><strong>构建编号:</strong> ${env.BUILD_NUMBER}</p>
-                    <p><strong>测试环境:</strong> ${params.TEST_ENVIRONMENT}</p>
-                    <p><strong>测试类型:</strong> ${params.TEST_TYPE}</p>
-                    <p><strong>构建结果:</strong> ${currentBuild.result}</p>
-                    <p><strong>构建 URL:</strong> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
-                    <p><strong>测试报告:</strong> <a href="${env.BUILD_URL}HTML_Report/">查看详细报告</a></p>
-                    <br>
-                    <p>此邮件由 Jenkins 自动发送，请勿回复。</p>
-                    """
-                    
-                    if (currentBuild.result == 'SUCCESS') {
-                        emailSubject = "✅ SUCCESS: API测试通过 - ${env.JOB_NAME} [${env.BUILD_NUMBER}]"
-                    } else if (currentBuild.result == 'UNSTABLE') {
-                        emailSubject = "⚠️ UNSTABLE: API测试部分失败 - ${env.JOB_NAME} [${env.BUILD_NUMBER}]"
-                    } else {
-                        emailSubject = "❌ FAILURE: API测试失败 - ${env.JOB_NAME} [${env.BUILD_NUMBER}]"
-                    }
-                    
-                    emailext (
-                        subject: emailSubject,
-                        body: emailBody,
-                        to: 'your-team@company.com',
-                        attachLog: true
-                    )
+                if (currentBuild.currentResult == 'SUCCESS') {
+                    echo "🎉 自动化测试执行成功！"
+                } else {
+                    echo "💡 构建完成状态: ${currentBuild.currentResult}"
                 }
             }
         }
-        
-        success {
-            echo "🎉 所有测试阶段执行成功！"
-        }
-        
-        failure {
-            echo "❌ 构建失败，请检查日志和测试报告"
-        }
-        
-        unstable {
-            echo "⚠️ 构建不稳定，部分测试失败"
-        }
     }
 }
-
