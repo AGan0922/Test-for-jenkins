@@ -25,7 +25,7 @@ pipeline {
     }
     
     environment {
-        NODEJS_HOME = tool 'NodeJS-16'
+        NODEJS_HOME = tool 'NodeJS-24'
         PROJECT_DIR = 'Test-for-jenkins'
         REPORT_DIR = '${WORKSPACE}/reports'
     }
@@ -231,3 +231,4 @@ pipeline {
         }
     }
 }
+
