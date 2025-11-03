@@ -36,22 +36,7 @@
 					"listen": "prerequest",
 					"script": {
 						"exec": [
-							"// Pre-request Script - 设置不同的测试内容\r",
-							"var testCases = [\r",
-							"    \"正常文本内容\",\r",
-							"    \"特殊字符!@#$%^&*()\",\r",
-							"    \"长文本\".repeat(100),\r",
-							"    \"中文内容\",\r",
-							"    \"\",\r",
-							"    \"null\",\r",
-							"    \"undefined\"\r",
-							"];\r",
-							"\r",
-							"// 随机选择一个测试用例，或者按顺序使用\r",
-							"var randomContent = testCases[Math.floor(Math.random() * testCases.length)];\r",
-							"pm.variables.set(\"content\", randomContent);\r",
-							"\r",
-							"console.log(\"当前测试内容:\", randomContent);"
+							""
 						],
 						"type": "text/javascript",
 						"packages": {},
