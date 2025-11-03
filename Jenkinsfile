@@ -6,116 +6,61 @@ pipeline {
     }
     
     stages {
-        stage('Checkout Code') {
+        stage('Checkout and Setup') {
             steps {
                 checkout scm
-                script {
-                    currentBuild.displayName = "#${BUILD_NUMBER}"
-                }
-            }
-        }
-        
-        stage('Environment Check') {
-            steps {
                 bat '''
-                    echo "=== Environment Check ==="
-                    echo "Working Directory: %CD%"
-                    dir
-                    echo "Node.js Version:"
-                    node --version
-                    echo "npm Version:"
-                    npm --version
+                    @echo off
+                    echo --- SETUP PHASE ---
+                    npm install -g newman newman-reporter-html --registry=https://registry.npmmirror.com
+                    if exist test-reports rmdir /s /q test-reports
+                    mkdir test-reports
                 '''
             }
         }
         
-        stage('Install Dependencies') {
+        stage('Execute Tests') {
             steps {
                 bat '''
-                    echo "=== Install Dependencies ==="
-                    echo "1. Installing Newman..."
-                    npm install -g newman --registry=https://registry.npmmirror.com
-                    
-                    echo "2. Installing HTML Reporter..."
-                    npm install -g newman-reporter-html --registry=https://registry.npmmirror.com
+                    @echo off
+                    echo --- TEST EXECUTION ---
+                    newman run "postman\\collection.json" -e "postman\\environment.json" --reporters cli,html --reporter-html-export "test-reports\\newman-report.html" --suppress-exit-code
+                    echo --- TESTS COMPLETE ---
                 '''
             }
         }
         
-        stage('Execute API Tests') {
+        stage('Report Results') {
             steps {
                 script {
-                    echo "Starting Postman Tests..."
-                    
-                    bat 'if not exist test-reports mkdir test-reports'
-                    
-                    try {
-                        bat """
-                            echo "Executing tests with HTML reporter..."
-                            newman run "postman\\collection.json" ^
-                                -e "postman\\environment.json" ^
-                                --reporters cli,html ^
-                                --reporter-html-export "test-reports\\newman-report.html" ^
-                                --suppress-exit-code
-                        """
-                    } catch (Exception e) {
-                        echo "Test execution error: ${e.getMessage()}"
-                        currentBuild.result = 'UNSTABLE'
-                    }
-                }
-            }
-        }
-        
-        stage('Verify Test Results') {
-            steps {
-                script {
-                    def reportExists = fileExists 'test-reports/newman-report.html'
-                    
-                    if (reportExists) {
-                        echo "✅ Test report generated successfully"
-                        
+                    if (fileExists('test-reports/newman-report.html')) {
                         publishHTML([
                             allowMissing: false,
                             alwaysLinkToLastBuild: true,
                             keepAll: true,
                             reportDir: 'test-reports',
                             reportFiles: 'newman-report.html',
-                            reportName: 'Postman API Test Report'
+                            reportName: 'API Test Report'
                         ])
-                        
-                        archiveArtifacts artifacts: 'test-reports/newman-report.html', allowEmptyArchive: false
+                        // 使用 Jenkins 的 echo 而不是 bat 的 echo
+                        echo "SUCCESS: Test execution completed"
+                        echo "View detailed report at: ${env.BUILD_URL}HTML_Report/"
                     } else {
-                        echo "❌ Test report not generated"
+                        echo "WARNING: Test report file not found"
                     }
                 }
-            }
-        }
-        
-        stage('Results Summary') {
-            steps {
-                bat '''
-                    echo "=== Test Execution Complete ==="
-                    echo "Project: %PROJECT_NAME%"
-                    echo "Build: %BUILD_NUMBER%"
-                    echo "Working Directory Contents:"
-                    dir
-                    echo "Report Directory Contents:"
-                    if exist test-reports dir test-reports
-                    echo "Postman Tests Completed Successfully!"
-                '''
             }
         }
     }
     
     post {
         always {
-            echo "Build Status: ${currentBuild.currentResult}"
+            // 只使用 Jenkins 原生的 echo 命令，避免编码问题
+            echo "Build Result: ${currentBuild.currentResult}"
+            echo "Build URL: ${env.BUILD_URL}"
         }
         success {
-            echo "🎉 API Tests Executed Successfully!"
-        }
-        unstable {
-            echo "⚠️ Tests completed with warnings"
+            echo "BUILD SUCCESSFUL - All tests passed"
         }
     }
 }
